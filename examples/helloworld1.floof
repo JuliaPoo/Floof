@@ -1,0 +1,143 @@
+;#####################################
+;   Prints `Hello World` minimally
+;   Only implemented integer
+;   arithmetic.
+;
+;   Main block chains printing of
+;   each character.
+;#####################################
+
+; ---------
+;   Utils
+; ---------
+
+#IDENTITY   ; Identity function
+            ; Used as placeholder
+[f:f]
+~
+
+; --------------------------
+;   Nonnegative integers
+; --------------------------
+
+#N0     ; Represents integer `0`
+[f:[x:x]]
+~
+
+#N1     ; Represents integer `1`
+[f:[x:f(x)]]
+~
+
+#N2     ; Represents integer `2`
+[f:[x:f(f(x))]]
+~
+
+#INC    ; INC(a) computes a+1
+[n:[f:[x:f(n(f)(x))]]]
+~
+
+#ADD    ; ADD(a)(b) computes a+b
+[a:[b:b(INC)(a)]]
+~
+
+#MUL    ; MUL(a)(b) computes a*b
+[a:[b:b([y:ADD(y)(a)])(N0)]]
+~
+
+
+; -------------
+;   Constants
+; -------------
+
+#H    ; Represents character `H`
+MUL(N2)(MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(MUL(N2)(N1)))))))      
+~
+
+#e    ; Represents character `e`
+ADD(N1)(MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(N1)))))))))
+~
+
+#l    ; Represents character `l`
+MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(N1)))))))))
+~
+
+#o    ; Represents character `o`
+ADD(N1)(MUL(N2)(ADD(N1)(MUL(N2)(ADD(N1)(MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(N1)))))))))))
+~
+
+#SPACE ; Represents character ` `
+MUL(N2)(MUL(N2)(MUL(N2)(MUL(N2)(MUL(N2)(N1)))))
+~
+
+#W    ; Represents character `W`
+ADD(N1)(MUL(N2)(ADD(N1)(MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(N1))))))))))
+~
+
+#r    ; Represents character `r`
+MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(ADD(N1)(MUL(N2)(N1)))))))))
+~
+
+#d    ; Represents character `d`
+MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(MUL(N2)(ADD(N1)(MUL(N2)(N1))))))))
+~
+
+#EXCL ; Represents character `!`
+ADD(N1)(MUL(N2)(MUL(N2)(MUL(N2)(MUL(N2)(MUL(N2)(N1))))))
+~
+
+; -------- 
+;   Main
+; --------
+
+!       ; Main program
+        ; Trick to chain effects.
+[_:
+    _OUT_CHAR_(EXCL)
+](
+    [_:
+        _OUT_CHAR_(d)
+    ](
+        [_:
+        _OUT_CHAR_(l)
+        ](
+            [_:
+                _OUT_CHAR_(r)
+            ](
+                [_:
+                    _OUT_CHAR_(o)
+                ](
+                    [_:
+                    _OUT_CHAR_(W)
+                    ](
+                        [_:
+                            _OUT_CHAR_(SPACE)
+                        ](
+                            [_:
+                                _OUT_CHAR_(o)
+                            ](
+                                [_:
+                                _OUT_CHAR_(l)
+                                ](
+                                    [_:
+                                        _OUT_CHAR_(l)
+                                    ](
+                                        [_:
+                                            _OUT_CHAR_(e)
+                                        ](
+                                            [_:
+                                            _OUT_CHAR_(H)
+                                            ](
+                                                IDENTITY
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+)
+~

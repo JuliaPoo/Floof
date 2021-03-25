@@ -1,0 +1,287 @@
+;#####################################
+;   Solves the classic interview
+;   question "fizzbuzz"
+;   It's much more efficient than
+;   Tom Stuart's.
+;#####################################
+
+; ---------
+;   Utils
+; ---------
+
+#ZCOM       ; Z combinator
+            ; Used for useful recursion
+[f:[g:f(g(g))]([g:f([y:g(g)(y)])])]
+~
+
+#IDENTITY   ; Identity function
+            ; Used as placeholder
+[f:f]
+~
+
+; -------------
+;   Booleans
+; -------------
+
+#TRUE   ; Represents boolean TRUE
+[x:[y:x]]
+~
+
+#FALSE   ; Represents boolean FALSE
+[x:[y:y]]
+~
+
+; --------------------------
+;   Nonnegative integers
+; --------------------------
+
+#N0     ; Represents integer `0`
+[f:[x:x]]
+~
+
+#N1     ; Represents integer `1`
+[f:[x:f(x)]]
+~
+
+#N2     ; Represents integer `2`
+[f:[x:f(f(x))]]
+~
+
+#N3     ; Represents integer `3`
+[f:[x:f(f(f(x)))]]
+~
+
+#N5     ; Represents integer `5`
+[f:[x:f(f(f(f(f(x)))))]]
+~
+
+#INC    ; INC(a) computes a+1
+[n:[f:[x:f(n(f)(x))]]]
+~
+
+#DEC    ; DEC(a) computes a-1
+[n:[f:[x:n([g:[y:y(g(f))]])(y:x)(y:y)]]]
+~
+
+#ADD    ; ADD(a)(b) computes a+b
+[a:[b:b(INC)(a)]]
+~
+
+#SUB    ; SUB(a)(b) computes a-b
+[a:[b:b(DEC)(a)]]
+~
+
+#MUL    ; MUL(a)(b) computes a*b
+[a:[b:b([y:ADD(y)(a)])(N0)]]
+~
+
+#IS_ZERO    ; IS_ZERO(n) returns TRUE if n is 0
+[n:n([y:FALSE])(TRUE)]
+~
+
+#LESS   ; LESS(a)(b) returns TRUE if a<b
+[a:[b:IS_ZERO(SUB(INC(a))(b))]]
+~
+
+#LESS_EQUAL ; LESS_EQUAL(a)(b) returns TRUE if a<=b
+[a:[b:IS_ZERO(SUB(a)(b))]]
+~
+
+#GREATER_EQUAL  ; GREATER_EQUAL(a)(b) returns TRUE if a>=b
+[a:[b:[IS_ZERO(SUB(b)(a))]]]
+~
+
+#EQUAL  ; EQUAL(a,b) returns TRUE if a==b
+[a:[b:LESS_EQUAL(a)(b)(GREATER_EQUAL(a)(b))(FALSE)]]
+~
+
+#MOD    ; MOD(a,b) computes a%b
+ZCOM(
+    [f:
+        [a:[b:
+            LESS(a)(b)(a)([x:f(SUB(a)(b))(b)(x)])
+        ]]
+    ]
+)
+~
+
+; ---------
+;   Pairs
+; ---------
+
+#PAIR   ; Represents a tuple of 2 objects
+        ; Indexed by TRUE and FALSE
+[x:[y:[f:f(x)(y)]]]
+~
+
+#PAIR_LEFT   ; PAIR_LEFT(PAIR) retrieves left object of PAIR
+[p:p(TRUE)]
+~
+
+#PAIR_RIGHT   ; PAIR_RIGHT(PAIR) retrieves right object of PAIR
+[p:p(FALSE)]
+~
+
+; ------------------
+;   Arrays/Strings
+; ------------------
+
+; Arrays are implemented as a linked list
+; Each element is (BOOL, (ELEMENT, NEXT))
+; Where NEXT is the object representing the
+; rest of the array.
+; BOOL is TRUE if element is the end of array
+
+#ARR_EMPTY      ; Represents an empty array
+PAIR(TRUE)(TRUE)
+~
+
+#ARR_PUSH_FRONT ; ARR_PUSH_FRONT(a)(x) pushes object x to front of array a
+[a:[x:[PAIR(FALSE)(PAIR(x)(a))]]]
+~
+
+#ARR_IS_EMPTY   ; ARR_IS_EMPTY(a) returns TRUE if a is empty, else FALSE
+PAIR_LEFT
+~
+
+#ARR_FIRST      ; ARR_FIRST(a) returns first element of array a
+[a:PAIR_LEFT(PAIR_RIGHT(a))]
+~
+
+#ARR_REST       ; ARR_REST(a) returns array without first element
+[a:PAIR_RIGHT(PAIR_RIGHT(a))]
+~
+
+#PRINT_STRING   ; Prints string that's represented as an array
+ZCOM([f:
+    [a:
+        ARR_IS_EMPTY(a)(IDENTITY)(
+            ; This is to prevent infinite evaluation bcuz
+            ; this branch evaluates even when ARR_IS_EMPTY is TRUE
+            [_:
+                f(ARR_REST(a))(_OUT_CHAR_(ARR_FIRST(a)))
+            ]
+        ; Trigger evaluation
+        )(a)
+    ]
+])
+~
+
+; -------------
+;   Constants
+; -------------
+
+#N10    ; Represents integer `10`
+MUL(N5)(N2)
+~
+
+#N100   ; Represents integer `100`
+MUL(N10)(N10)
+~
+
+#NEWLINE ; Newline character
+MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(N1))))
+~
+
+#COLON   ; String that represents ": "
+[A:[M:
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+    ARR_EMPTY
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))
+    ; :
+)(M(N2)(M(N2)(M(N2)(M(N2)(M(N2)(N1))))))
+    ;
+]](ADD)(MUL)
+~
+
+#FIZZ    ; String that represents "fizz"
+[A:[M:
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+    ARR_EMPTY
+)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; f
+)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; i
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; z
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; z
+]](ADD)(MUL)
+~
+
+#BUZZ   ; String that represents "buzz"
+[A:[M:
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+    ARR_EMPTY
+)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1)))))))))
+    ; b
+)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; u
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; z
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; z
+]](ADD)(MUL)
+~
+
+; -------- 
+;   Main
+; --------
+
+; Pseudocode:
+;
+; def f(n):
+;     if n==100:
+;         return
+;     print(n)
+;     print(": ")
+;     if mod(n%3):
+;         print(FIZZ)
+;     if mof(n%5):
+;         print(BUZZ)
+;     print("\n")
+;     f(n+1)
+; f(0)
+
+!       ; Main program
+ZCOM(
+    [f:[n:
+        EQUAL(n)(N100)(IDENTITY)(
+            [_:
+                [_:
+                    [_:
+                        [_:
+                            [_:
+                                f(INC(n))
+                            ](_OUT_CHAR_(NEWLINE))
+                        ](
+                            IS_ZERO(MOD(n)(N5))(
+                                [x:
+                                    PRINT_STRING(BUZZ)(x)
+                                ]
+                            )(IDENTITY)(n)
+                        )
+                    ](
+                        IS_ZERO(MOD(n)(N3))(
+                            [x:
+                                PRINT_STRING(FIZZ)(x)
+                            ]
+                        )(IDENTITY)(n)
+                    )
+                ](
+                    [_:
+                        PRINT_STRING(COLON)
+                    ](_OUT_INT_(n))
+                )
+            ]
+        )(n)
+    ]]
+)(N0)
+~
