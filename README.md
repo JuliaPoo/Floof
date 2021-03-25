@@ -33,8 +33,8 @@ Examples:
 
 ```
 [f:[x:x]]           ; Represents the literal `0`
-[f:[x:[f(x)]]]      ; Represents the literal `1`
-[f:[x:[f(f(x))]]]   ; Represents the literal `2`
+[f:[x:f(x)]]      ; Represents the literal `1`
+[f:[x:f(f(x))]]   ; Represents the literal `2`
 ```
 
 ### Input and Output
