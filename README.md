@@ -52,10 +52,11 @@ _IN_CHR_()      ; Waits for user to input a character and
                 ; representation mentioned above
 
 _OUT_INT_(arg)  ; Prints the integer represented by `arg` of 
-                ; type `T`.
+                ; type `T`. Returns `arg`.
 
 _OUT_CHAR_(arg) ; Prints a char in the Unicode code indexed by the
                 ; integer represented by `arg` of type `T`
+                ; Returns `arg`.
 ```
 
 Examples:
