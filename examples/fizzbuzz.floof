@@ -158,11 +158,13 @@ ZCOM([f:
         ARR_IS_EMPTY(a)(IDENTITY)(
             ; This is to prevent infinite evaluation bcuz
             ; this branch evaluates even when ARR_IS_EMPTY is TRUE
-            [_:
-                f(ARR_REST(a))(_OUT_CHAR_(ARR_FIRST(a)))
+            [x:
+                [_:
+                    f(ARR_REST(a))
+                ](_OUT_CHAR_(ARR_FIRST(a)))
             ]
         ; Trigger evaluation
-        )(a)
+        )(IDENTITY)
     ]
 ])
 ~
@@ -188,10 +190,10 @@ MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(N1))))
 ARR_PUSH_FRONT(
 ARR_PUSH_FRONT(
     ARR_EMPTY
+)(M(N2)(M(N2)(M(N2)(M(N2)(M(N2)(N1))))))
+    ; <SPACE>
 )(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))
     ; :
-)(M(N2)(M(N2)(M(N2)(M(N2)(M(N2)(N1))))))
-    ;
 ]](ADD)(MUL)
 ~
 
@@ -202,14 +204,14 @@ ARR_PUSH_FRONT(
 ARR_PUSH_FRONT(
 ARR_PUSH_FRONT(
     ARR_EMPTY
-)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
-    ; f
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; z
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; z
 )(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
     ; i
-)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
-    ; z
-)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
-    ; z
+)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; f
 ]](ADD)(MUL)
 ~
 
@@ -220,14 +222,14 @@ ARR_PUSH_FRONT(
 ARR_PUSH_FRONT(
 ARR_PUSH_FRONT(
     ARR_EMPTY
-)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1)))))))))
-    ; b
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; z
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; z
 )(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
     ; u
-)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
-    ; z
-)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
-    ; z
+)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1)))))))))
+    ; b
 ]](ADD)(MUL)
 ~
 
@@ -238,7 +240,7 @@ ARR_PUSH_FRONT(
 ; Pseudocode:
 ;
 ; def f(n):
-;     if n==100:
+;     if n>=100:
 ;         return
 ;     print(n)
 ;     print(": ")
@@ -253,7 +255,7 @@ ARR_PUSH_FRONT(
 !       ; Main program
 ZCOM(
     [f:[n:
-        EQUAL(n)(N100)(IDENTITY)(
+        GREATER_EQUAL(n)(N100)(IDENTITY)(
             [_:
                 [_:
                     [_:

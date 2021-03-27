@@ -115,11 +115,13 @@ ZCOM([f:
         ARR_IS_EMPTY(a)(IDENTITY)(
             ; This is to prevent infinite evaluation bcuz
             ; this branch evaluates even when ARR_IS_EMPTY is TRUE
-            [_:
-                f(ARR_REST(a))(_OUT_CHAR_(ARR_FIRST(a)))
+            [x:
+                [_:
+                    f(ARR_REST(a))
+                ](_OUT_CHAR_(ARR_FIRST(a)))
             ]
         ; Trigger evaluation
-        )(a)
+        )(IDENTITY)
     ]
 ])
 ~
@@ -143,30 +145,30 @@ ARR_PUSH_FRONT(
 ARR_PUSH_FRONT(
 ARR_PUSH_FRONT(
     ARR_EMPTY
-)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(N1))))))))
-    ; H
-)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))
-    ; e
-)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))
-    ; l
-)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))
-    ; l
-)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))))
-    ; o
-)(M(N2)(M(N2)(M(N2)(M(N2)(M(N2)(N1))))))
-    ; <SPACE>
-)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(N1)))))))))))       
-    ; W
-)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))))
-    ; o
-)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1))))))))))
-    ; r
-)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))
-    ; l
-)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1)))))))))
-    ; d
 )(A(N1)(M(N2)(M(N2)(M(N2)(M(N2)(M(N2)(N1)))))))
     ; !
+)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1)))))))))
+    ; d
+)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; l
+)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; r
+)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))))
+    ; o
+)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(N1)))))))))))
+    ; W
+)(M(N2)(M(N2)(M(N2)(M(N2)(M(N2)(N1))))))
+    ;
+)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))))
+    ; o
+)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; l
+)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; l
+)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; e
+)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(N1))))))))
+    ; H
 ]](ADD)(MUL)
 ~
 
