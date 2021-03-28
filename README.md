@@ -46,7 +46,7 @@ _IN_INT_()      ; Waits for user to input a non-negative
                 ; integer and returns it in the representation
                 ; mentioned above
                 
-_IN_CHR_()      ; Waits for user to input a character and
+_IN_CHAR_()      ; Waits for user to input a character and
                 ; returns an integer representing the Unicode 
                 ; code point of that character, in the 
                 ; representation mentioned above
