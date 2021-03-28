@@ -4,6 +4,9 @@ from enum import Enum, unique
 import warnings
 import re
 
+import sys
+sys.setrecursionlimit(100000)
+
 from . import _atoms
 for a in dir(_atoms):
     if a[0] != '_': # An atom
