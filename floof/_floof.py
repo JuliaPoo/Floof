@@ -22,6 +22,7 @@ class Token:
 class ObjType(Enum):
     EXPR = 0
     DECL = 1
+    NONE = 2
 
 @dataclass
 class ExprObject:
@@ -37,7 +38,7 @@ class DeclObject:
 @dataclass
 class AstObject:
     namespace: List[Token]
-    obj_type: Literal[ObjType.EXPR, ObjType.DECL]
+    obj_type: Literal[ObjType.EXPR, ObjType.DECL, ObjType.NONE]
     obj: Union[
             ExprObject,
             DeclObject
@@ -192,8 +193,15 @@ class FloofBlock:
         return argvals
 
     @staticmethod
-    def _tokens_to_ast(tokens:List[Token], namespace:List[Token]) -> AstObject:
-            
+    def _tokens_to_ast(tokens:List[Token], namespace:List[Token]) -> AstObject: 
+
+        if len(tokens) == 0:
+            return AstObject(
+                namespace = namespace,
+                obj_type = ObjType.NONE,
+                obj = None
+            )
+
         t = tokens[0]
 
         # Start of declaration object (DeclObject)
@@ -297,6 +305,9 @@ class FloofBlock:
             for arg in argvals:
                 code += "(%s)"%FloofBlock._to_code(arg, target)
 
+        elif ast.obj_type==ObjType.NONE:
+            code = ""
+
         else:
             raise Exception(
                 "[COMPILE ERROR] Unexpected object type"
@@ -391,6 +402,9 @@ class Floof:
             if Floof._search_macro(ast.obj.definition, macro_name):
                 return True
             return False
+
+        elif ast.obj_type == ObjType.NONE:
+            return False
         
         else:
             raise Exception("[COMPILER ERROR] Unexpected ObjType")
@@ -444,7 +458,7 @@ class Floof:
         for name, macro in macros[::-1]:
 
             if not Floof._search_macro(main_ast, name.obj_str):
-                warnings.warn("[WARNING] Macro `%s` is not used"%name.obj_str)
+                warnings.warn("[WARNING] Line %d: Macro `%s` is not used"%(name.line+1, name.obj_str))
                 continue
 
             main_namespace = [t for t in main_namespace if t.obj_str != name.obj_str]
