@@ -175,14 +175,6 @@ ZCOM([f:
 ;   Constants
 ; -------------
 
-#N10    ; Represents integer `10`
-MUL(N5)(N2)
-~
-
-#N100   ; Represents integer `100`
-MUL(N10)(N10)
-~
-
 #NEWLINE ; Newline character
 MUL(N2)(ADD(N1)(MUL(N2)(MUL(N2)(N1))))
 ~
@@ -235,14 +227,63 @@ ARR_PUSH_FRONT(
 ]](ADD)(MUL)
 ~
 
+#ENTER_NUMBER    ; String that represents "Enter Number: "
+[A:[M:
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+ARR_PUSH_FRONT(
+    ARR_EMPTY
+)(M(N2)(M(N2)(M(N2)(M(N2)(M(N2)(N1))))))
+    ;
+)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))
+    ; :
+)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; r
+)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; e
+)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1)))))))))
+    ; b
+)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; m
+)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; u
+)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(N1))))))))))   
+    ; N
+)(M(N2)(M(N2)(M(N2)(M(N2)(M(N2)(N1))))))
+    ;
+)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; r
+)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; e
+)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(N1))))))))))   
+    ; t
+)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(N1)))))))))))
+    ; n
+)(A(N1)(M(N2)(M(N2)(A(N1)(M(N2)(M(N2)(M(N2)(M(N2)(N1)))))))))
+    ; E
+]](ADD)(MUL)
+~
+
 ; -------- 
 ;   Main
 ; --------
 
 ; Pseudocode:
 ;
+; max = _IN_INT_()
 ; def f(n):
-;     if n>=100:
+;     if n>=max:
 ;         return
 ;     print(n)
 ;     print(": ")
@@ -255,37 +296,43 @@ ARR_PUSH_FRONT(
 ; f(0)
 
 !       ; Main program
-ZCOM(
-    [f:[n:
-        GREATER_EQUAL(n)(N100)(IDENTITY)(
-            [_:
+[end:
+    ZCOM(
+        [f:[n:
+            GREATER_EQUAL(n)(end)(IDENTITY)(
                 [_:
                     [_:
                         [_:
                             [_:
-                                f(INC(n))
-                            ](_OUT_CHAR_(NEWLINE))
+                                [_:
+                                    f(INC(n))
+                                ](_OUT_CHAR_(NEWLINE))
+                            ](
+                                IS_ZERO(MOD(n)(N5))(
+                                    [x:
+                                        PRINT_STRING(BUZZ)(x)
+                                    ]
+                                )(IDENTITY)(n)
+                            )
                         ](
-                            IS_ZERO(MOD(n)(N5))(
+                            IS_ZERO(MOD(n)(N3))(
                                 [x:
-                                    PRINT_STRING(BUZZ)(x)
+                                    PRINT_STRING(FIZZ)(x)
                                 ]
                             )(IDENTITY)(n)
                         )
                     ](
-                        IS_ZERO(MOD(n)(N3))(
-                            [x:
-                                PRINT_STRING(FIZZ)(x)
-                            ]
-                        )(IDENTITY)(n)
+                        [_:
+                            PRINT_STRING(COLON)
+                        ](_OUT_INT_(n))
                     )
-                ](
-                    [_:
-                        PRINT_STRING(COLON)
-                    ](_OUT_INT_(n))
-                )
-            ]
-        )(n)
-    ]]
-)(N0)
+                ]
+            )(n)
+        ]]
+    )(N0)
+](
+    [_:
+        _IN_INT_()
+    ](PRINT_STRING(ENTER_NUMBER))
+)
 ~
