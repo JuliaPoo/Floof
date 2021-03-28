@@ -183,6 +183,8 @@ An additional `-v` flag can be given to make the interpreter output intermediate
 
 Try running _Floof_ programs in the folder [./examples](./examples).
 
+The interpreter will also alert you of syntax errors in your floof program by giving the line number.
+
 ## Tips
 
 You can build data structures with just type `T`s! Abstract it out! You might wanna take a look at [./examples](./examples) for examples.
