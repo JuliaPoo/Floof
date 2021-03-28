@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Type, List, Literal, Union
+from typing import List, Literal, Union, Tuple, NoReturn
 from enum import Enum, unique
 import warnings
 import re
@@ -26,21 +26,18 @@ class ObjType(Enum):
 @dataclass
 class ExprObject:
     objname: Token
-    argvals: List[Union[Type['AstObject']]]
+    argvals: List['AstObject']
 
 @dataclass
 class DeclObject:
     argname: Token
-    definition: Type['AstObject']
-    argvals: List[Union[Type['AstObject']]]
+    definition: 'AstObject'
+    argvals: List['AstObject']
 
 @dataclass
 class AstObject:
     namespace: List[Token]
-    obj_type: Union[
-            Literal[ObjType.EXPR],
-            Literal[ObjType.DECL],
-        ]
+    obj_type: Literal[ObjType.EXPR, ObjType.DECL]
     obj: Union[
             ExprObject,
             DeclObject
@@ -55,7 +52,7 @@ ATOMS = [
 
 class FloofBlock:
 
-    def __init__(self, code:str, line:int, namespace:List[Token], _from_ast=False):
+    def __init__(self, code:str, line:int, namespace:List[Token], _from_ast=False) -> NoReturn:
 
         if _from_ast:
             self.ast = _from_ast
@@ -69,7 +66,7 @@ class FloofBlock:
         self.ast = self._tokens_to_ast(self.tokens, self.namespace)
 
     @classmethod
-    def from_ast(cls, ast:AstObject):
+    def from_ast(cls, ast:AstObject) -> 'FloofBlock':
         return cls(None, None, None, _from_ast = ast)
 
     def _tokenize(self) -> List[Token]:
@@ -276,7 +273,7 @@ class FloofBlock:
             )
 
     @staticmethod
-    def _to_code(ast:AstObject, target:Union[Literal['floof'], Literal['python']] = 'python') -> str:
+    def _to_code(ast:AstObject, target:Literal['floof', 'python'] = 'python') -> str:
 
         template = {
             "floof": "[%s:%s]",
@@ -307,19 +304,19 @@ class FloofBlock:
 
         return code
 
-    def to_code(self, target:Union[Literal['floof'], Literal['python']] = 'python') -> str:
+    def to_code(self, target:Literal['floof', 'python'] = 'python') -> str:
         return self._to_code(self.ast, target)
 
 class Floof:
 
-    def __init__(self, code:str):
+    def __init__(self, code:str) -> NoReturn:
 
         self.code = code
         self.mainblock = self._to_FloofBlock(code)
         self.compiled = {}
 
     @staticmethod
-    def _parse_macro(lines, line_idx, namespace):
+    def _parse_macro(lines:List[str], line_idx:int, namespace:List[Token]) -> Tuple[Token, FloofBlock, int]:
 
         idx = line_idx
         macro_name = lines[idx][1:].strip()
@@ -345,12 +342,12 @@ class Floof:
 
         macro_name = Token(macro_name, line_idx, -1, True)
         macro_block = FloofBlock(macro_def, line_idx+2, namespace)
-        end_line = j+idx+2
+        end_line_idx = j+idx+2
 
-        return macro_name, macro_block, end_line
+        return macro_name, macro_block, end_line_idx
 
     @staticmethod
-    def _parse_main(lines, line_idx, namespace):
+    def _parse_main(lines:List[str], line_idx:int, namespace:List[Token]) -> Tuple[FloofBlock, int]:
 
         idx = line_idx
         main = ""
@@ -370,7 +367,7 @@ class Floof:
         return FloofBlock(main, line_idx+2, namespace), j+idx+2
 
     @staticmethod
-    def _search_macro(ast:AstObject, macro_name:str):
+    def _search_macro(ast:AstObject, macro_name:str) -> bool:
         
         namespace_str = [t.obj_str for t in ast.namespace]
         if ast.obj_type == ObjType.EXPR:
@@ -463,10 +460,10 @@ class Floof:
 
         return FloofBlock.from_ast(main_ast)
 
-    def to_code(self, target:Union[Literal['floof'], Literal['python']] = 'python')->str:
+    def to_code(self, target:Literal['floof', 'python'] = 'python') -> str:
         if target not in self.compiled:
             self.compiled[target] = self.mainblock.to_code(target)
         return self.compiled[target]
 
-    def run(self):
+    def run(self) -> NoReturn:
         eval(self.to_code())
