@@ -79,7 +79,7 @@ Comments start with a `;`. Everything in a line after a `;` is ignored and treat
 
 ### Program Format
 
-A _Floof_ program consists of several macro _blocks_ and a main _block_. Each _block_ starts with either a `#` or a `!` and ends with a `~`. Each _block_ can contain only one expression.
+A _Floof_ program consists of several macro _blocks_ and a main _block_. Each _block_ starts with either a `#` or a `!` and ends with a `~`. Each _block_ can contain only one expression. Everything after the main _block_ is ignored.
 
 #### Macro _blocks_
 

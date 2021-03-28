@@ -1,1 +1,1 @@
-from ._floof import run
+from ._floof import Floof

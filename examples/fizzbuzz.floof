@@ -60,7 +60,7 @@
 ~
 
 #DEC    ; DEC(a) computes a-1
-[n:[f:[x:n([g:[y:y(g(f))]])(y:x)(y:y)]]]
+[n:[f:[x:n([g:[y:y(g(f))]])([y:x])([y:y])]]]
 ~
 
 #ADD    ; ADD(a)(b) computes a+b
@@ -83,17 +83,19 @@
 [a:[b:IS_ZERO(SUB(INC(a))(b))]]
 ~
 
-#LESS_EQUAL ; LESS_EQUAL(a)(b) returns TRUE if a<=b
-[a:[b:IS_ZERO(SUB(a)(b))]]
-~
+; ---- unused ----
+; #LESS_EQUAL ; LESS_EQUAL(a)(b) returns TRUE if a<=b
+; [a:[b:IS_ZERO(SUB(a)(b))]]
+; ~
 
 #GREATER_EQUAL  ; GREATER_EQUAL(a)(b) returns TRUE if a>=b
-[a:[b:[IS_ZERO(SUB(b)(a))]]]
+[a:[b:IS_ZERO(SUB(b)(a))]]
 ~
 
-#EQUAL  ; EQUAL(a,b) returns TRUE if a==b
-[a:[b:LESS_EQUAL(a)(b)(GREATER_EQUAL(a)(b))(FALSE)]]
-~
+; ---- unused ----
+; #EQUAL  ; EQUAL(a,b) returns TRUE if a==b
+; [a:[b:LESS_EQUAL(a)(b)(GREATER_EQUAL(a)(b))(FALSE)]]
+; ~
 
 #MOD    ; MOD(a,b) computes a%b
 ZCOM(
@@ -137,7 +139,7 @@ PAIR(TRUE)(TRUE)
 ~
 
 #ARR_PUSH_FRONT ; ARR_PUSH_FRONT(a)(x) pushes object x to front of array a
-[a:[x:[PAIR(FALSE)(PAIR(x)(a))]]]
+[a:[x:PAIR(FALSE)(PAIR(x)(a))]]
 ~
 
 #ARR_IS_EMPTY   ; ARR_IS_EMPTY(a) returns TRUE if a is empty, else FALSE
