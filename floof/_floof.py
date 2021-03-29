@@ -56,24 +56,94 @@ ATOMS = [
 
 class FloofBlock:
 
+    """
+    Class used to represent a FloofBlock's definition (main block and macro blocks)
+
+    ...
+
+    Attributes
+    ----------
+    code : str
+        Definition of block, in floof syntax.
+    line : int
+        Line number where the block was from
+    namespace : List[Token]
+        Contains all tokens that block can reference
+
+    _tokens : List[Token]
+        Tokens in `code`, initialised during `__init__`
+    _ast : AstObject
+        AST of `code`, initialised during `__init__`
+    _compiled : Dict
+        Cached compiled code, populated on `to_code` call.
+
+    Methods
+    -------
+    from_ast(self, ast: AstObject) -> `FloofBlock`
+        Initialises FloofBlock directly from AST
+
+    to_code(self, target:Literal['floof', 'python'] = 'python') -> str
+        Compiles FloofBlock into `target` ("floof" or "python")
+
+    get_ast(self) -> AstObject
+        Returns self._ast
+    """
+
     def __init__(self, code:str, line:int, namespace:List[Token], _from_ast=False) -> NoReturn:
 
+        """
+        Parameters
+        ----------
+        code : str
+            Definition of block, in floof syntax.
+        line : int
+            Line number where the block was from
+        namespace : List[Token]
+            Contains all tokens that block can reference
+        _from_ast : optional (Default False)
+            For internal use. Initialises FloofBlock from AstObject. Use `FloofBlock.from_ast` instead
+        """
+
+        self._compiled = {}
+
         if _from_ast:
-            self.ast = _from_ast
+            self._ast = _from_ast
             return
 
         self.code = code
         self.line = line
         self.namespace = namespace
 
-        self.tokens = self._tokenize()
-        self.ast = self._tokens_to_ast(self.tokens, self.namespace)
+        self._tokens = self._tokenize()
+        self._ast = self._tokens_to_ast(self._tokens, self.namespace)
 
     @classmethod
     def from_ast(cls, ast:AstObject) -> 'FloofBlock':
+
+        """Initialises FloofBlock directly from AstObject
+
+        Parameters
+        ----------
+        ast : AstObject
+            AstObject used to initialise FloofBlock
+
+        Returns
+        -------
+        FloofBlock
+            Initialised FloofBlock object
+        """
+
         return cls(None, None, None, _from_ast = ast)
 
     def _tokenize(self) -> List[Token]:
+
+        """Tokenizes self.code
+
+        Returns
+        -------
+        List[Token]
+            Tokens corresponding to self.code
+        """
         
         tokens = []
         line = self.line
@@ -127,13 +197,28 @@ class FloofBlock:
         return tokens
 
     @staticmethod
-    def _get_bracket_pair(tokens:List[Token], start_idx:int, start_bracket:Literal['(', '[']) -> int:
+    def _get_bracket_pair(tokens:List[Token], start_idx:int) -> int:
 
-        c = tokens[start_idx].obj_str
-        if c != start_bracket:
+        """Gets corresponding closing bracket
+
+        Parameters
+        ----------
+        tokens : List[Token]
+            Tokens to search for closing bracket
+        start_idx : int
+            Index into `tokens` that contains opening bracket
+
+        Returns
+        -------
+        int
+            Index into `tokens` that contains the closing braket
+        """
+
+        start_bracket = tokens[start_idx].obj_str
+        if start_bracket not in '[(':
             raise Exception(
-                "[PARSE ERROR] `get_bracket_pair` called with `%c` when looking for %x!"%(
-                    c, start_bracket
+                "[PARSE ERROR] `get_bracket_pair` called with `%c` when looking for one of either `(` or `[`!"%(
+                    start_bracket
                 )
             )
 
@@ -160,6 +245,25 @@ class FloofBlock:
     @staticmethod
     def _parse_argvals(namespace:List[Token], tokens:List[Token], start_call_idx:int) -> List[AstObject]:
 
+        """Parse floof syntax for calls (arg1)(arg2)...
+
+        Parameters
+        ----------
+        namespace : List[Token]
+            namespace as which the calls are in
+        tokens : List[Token]
+            tokens to parse the calls
+        start_call_idx : int
+            index into `tokens` that indicates start of call
+            Either `start_call_idx` indexes beyond `tokens` or the token
+            it indexes is `(`
+
+        Returns
+        -------
+        List[AstObject]
+            List of arguments [arg1, arg2, arg3...]
+        """
+
         argvals = []
 
         while True:
@@ -178,7 +282,7 @@ class FloofBlock:
                     )
                 )
             
-            end_call_idx = FloofBlock._get_bracket_pair(tokens, start_call_idx, t.obj_str)
+            end_call_idx = FloofBlock._get_bracket_pair(tokens, start_call_idx)
             if not end_call_idx:
                 line = tokens[0].line
                 raise Exception(
@@ -198,6 +302,21 @@ class FloofBlock:
     @staticmethod
     def _tokens_to_ast(tokens:List[Token], namespace:List[Token]) -> AstObject: 
 
+        """Converts tokens to AstObject
+        
+        Parameters
+        ----------
+        tokens : List[Token]
+            Tokens to parse to AstObject
+        namespace : List[Token]
+            Namespace at which the tokens are in
+
+        Returns
+        -------
+        AstObject
+            AstObject of `tokens`
+        """
+
         if len(tokens) == 0:
             return AstObject(
                 namespace = namespace,
@@ -210,7 +329,7 @@ class FloofBlock:
         # Start of declaration object (DeclObject)
         if t.obj_str == '[':
 
-            end_decl_idx = FloofBlock._get_bracket_pair(tokens, 0, t.obj_str)
+            end_decl_idx = FloofBlock._get_bracket_pair(tokens, 0)
             if not end_decl_idx:
                 line = tokens[0].line
                 raise Exception(
@@ -286,6 +405,21 @@ class FloofBlock:
     @staticmethod
     def _to_code(ast:AstObject, target:Literal['floof', 'python'] = 'python') -> str:
 
+        """Converts AstObject to code
+
+        Parameters
+        ----------
+        ast : AstObject
+            AstObject to convert to code to
+        target : Literal['floof', 'python'], optional (default 'python')
+            Target to compile to
+
+        Returns
+        -------
+        str
+            String representing code of `target`
+        """
+
         template = {
             "floof": "[%s:%s]",
             "python": "(lambda %s: %s)"
@@ -319,18 +453,96 @@ class FloofBlock:
         return code
 
     def to_code(self, target:Literal['floof', 'python'] = 'python') -> str:
-        return self._to_code(self.ast, target)
+
+        """Compiles Floof program into `target` ("floof" or "python")
+
+        Parameters
+        ----------
+        target : Literal['floof', 'python'], optional (default 'python')
+            Target to compile to
+
+        Returns
+        -------
+        str
+            String representing code of `target`
+        """
+
+        if target not in self._compiled:
+            self._compiled[target] = self._to_code(self._ast, target)
+        return self._compiled[target]
+
+    def get_ast(self) -> AstObject:
+
+        """Gets self._ast
+
+        Returns
+        -------
+        AstObject
+            self._ast
+        """
+
+        return self._ast
 
 class Floof:
 
+    """
+    Class used to represent a Floof program
+
+    ...
+
+    Attributes
+    ----------
+    code : str
+        Floof program code
+    _mainblock : FloofBlock
+        FloofBlock that represents the whole program. Initialised during __init__
+    _compiled : Dict
+        Cached compiled code, populated on `to_code` call.
+        
+
+    Methods
+    -------
+    to_code(self, target:Literal['floof', 'python'] = 'python') -> str
+        Compiles Floof program into `target` ("floof" or "python")
+    run(self) -> NoReturn
+        Runs floof program
+    """
+
     def __init__(self, code:str) -> NoReturn:
 
+        """
+        Parameters
+        ----------
+        code : str
+            Floof program code
+        """
+
         self.code = code
-        self.mainblock = self._to_FloofBlock(code)
-        self.compiled = {}
+        self._mainblock = self._to_FloofBlock(code)
+        self._compiled = {}
 
     @staticmethod
     def _parse_macro(lines:List[str], line_idx:int, namespace:List[Token]) -> Tuple[Token, FloofBlock, int]:
+
+        """Parses macro
+
+        Parameters
+        ----------
+        lines : List[str]
+            lines of code that contains macro
+            macro name has to be in the first line (lines[0])
+        line_idx : int
+            line index at which this macro is in the original Floof program
+        namespace : List[Token]
+            Contains all tokens that this macro can reference
+
+        Returns
+        -------
+        Tuple[Token, FloofBlock, int]
+            Token: Token that represents the name of the macro
+            FloofBlock: FloofBlock that contains macro definition
+            int: last line of macro
+        """
 
         idx = line_idx
         macro_name = lines[idx][1:].strip()
@@ -342,19 +554,19 @@ class Floof:
             if l[0]=='~':
                 break
             if l[0]=='!':
-                raise Exception("[ERROR] Line %d: Main definition within macro not allowed"%idx)
+                raise Exception("[ERROR] Line %d: Main definition within macro not allowed"%(idx+1))
             macro_def += l+"\n"
 
         if not macro_name:
-            raise Exception("[ERROR] Line %d: No name given to macro"%idx)
+            raise Exception("[ERROR] Line %d: No name given to macro"%(idx+1))
 
         if not re.match("^%s$"%VALID_NAME_REGEX, macro_name):
-            raise Exception("[ERROR] Line %d: Macro name `%s` invalid"%(idx, macro_name))
+            raise Exception("[ERROR] Line %d: Macro name `%s` invalid"%(idx+1, macro_name))
 
         if not l or l[0] != '~':
-            raise Exception("[ERROR] Line %d: Macro `%s` terminator not found"%(idx, macro_name))
+            raise Exception("[ERROR] Line %d: Macro `%s` terminator not found"%(idx+1, macro_name))
 
-        macro_name = Token(macro_name, line_idx, -1, True)
+        macro_name = Token(macro_name, line_idx+1, -1, True)
         macro_block = FloofBlock(macro_def, line_idx+2, namespace)
         end_line_idx = j+idx+2
 
@@ -362,6 +574,25 @@ class Floof:
 
     @staticmethod
     def _parse_main(lines:List[str], line_idx:int, namespace:List[Token]) -> Tuple[FloofBlock, int]:
+
+        """Parses main block
+
+        Parameters
+        ----------
+        lines : List[str]
+            lines of code that contains main
+            the token `!` has to be in the first line (lines[0])
+        line_idx : int
+            line index at which the main block is in the original Floof program
+        namespace : List[Token]
+            Contains all tokens that this main block can reference
+
+        Returns
+        -------
+        Tuple[FloofBlock, int]
+            FloofBlock: FloofBlock that contains main definition
+            int: last line of main
+        """
 
         idx = line_idx
         main = ""
@@ -372,17 +603,32 @@ class Floof:
             if l[0]=='~':
                 break
             if l[0]=='#':
-                raise Exception("[ERROR] Line %d: Macro definition within main not allowed"%idx)
+                raise Exception("[ERROR] Line %d: Macro definition within main not allowed"%(idx+1))
             main += l+"\n"
 
         if not l or l[0] != '~':
-            raise Exception("[ERROR] Line %d: Main terminator not found"%idx)
+            raise Exception("[ERROR] Line %d: Main terminator not found"%(idx+1))
 
         return FloofBlock(main, line_idx+2, namespace), j+idx+2
 
     @staticmethod
     def _search_macro(ast:AstObject, macro_name:str) -> bool:
         
+        """Searches for macro in ast
+
+        Parameters
+        ----------
+        ast : AstObject
+            Ast to search macro in
+        macro_name : str
+            Name of macro to search for
+
+        Returns
+        -------
+        bool
+            True if macro is found in ast. False o.w.
+        """
+
         namespace_str = [t.obj_str for t in ast.namespace]
         if ast.obj_type == ObjType.EXPR:
             if macro_name not in namespace_str:
@@ -414,6 +660,19 @@ class Floof:
 
     @staticmethod
     def _to_FloofBlock(code:str) -> FloofBlock:
+
+        """Converts Floof program into a FloofBlock
+
+        Parameters
+        ----------
+        code : str
+            The floof program
+
+        Returns
+        -------
+        FloofBlock
+            FloofBlock that represents the floof program
+        """
 
         code = code
         lines = code.split("\n")
@@ -457,31 +716,50 @@ class Floof:
             raise Exception("[ERROR] Line ??: No main found")
 
         # Create AST for full program
-        main_ast, main_namespace = main.ast, main.ast.namespace
+        main_ast = main.get_ast()
+        main_namespace = main_ast.namespace
 
         for name, macro in macros[::-1]:
 
+            main_namespace = [t for t in main_namespace if t.obj_str != name.obj_str]
+
             if not Floof._search_macro(main_ast, name.obj_str):
-                warnings.warn("[WARNING] Line %d: Macro `%s` is not used"%(name.line+1, name.obj_str))
+                warnings.warn("[WARNING] Line %d: Macro `%s` is not used"%(name.line, name.obj_str))
                 continue
 
-            main_namespace = [t for t in main_namespace if t.obj_str != name.obj_str]
             main_ast = AstObject(
                 namespace = main_namespace,
                 obj_type = ObjType.DECL,
                 obj = DeclObject(
                     argname = name,
                     definition = main_ast,
-                    argvals = [macro.ast]
+                    argvals = [macro.get_ast()]
                 )
             )
 
         return FloofBlock.from_ast(main_ast)
 
     def to_code(self, target:Literal['floof', 'python'] = 'python') -> str:
-        if target not in self.compiled:
-            self.compiled[target] = self.mainblock.to_code(target)
-        return self.compiled[target]
+
+        """Compiles Floof program into `target` ("floof" or "python")
+
+        Parameters
+        ----------
+        target : Literal['floof', 'python'], optional (default 'python')
+            Target to compile to
+
+        Returns
+        -------
+        str
+            String representing code of `target`
+        """
+
+        if target not in self._compiled:
+            self._compiled[target] = self._mainblock.to_code(target)
+        return self._compiled[target]
 
     def run(self) -> NoReturn:
+
+        """Runs floof program"""
+
         eval(self.to_code())
