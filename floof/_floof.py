@@ -428,6 +428,7 @@ class Floof:
         namespace = ATOMS
         macros = []
         main = None
+        end_idx = 0
         for idx,line in enumerate(lines):
 
             if not line: continue
