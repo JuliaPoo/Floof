@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 from typing import List, Literal, Union, Tuple, NoReturn
 from enum import Enum, unique
-import warnings
 import re
 
 import sys
 sys.setrecursionlimit(100000)
+
+import warnings
+def _warning(message, *args, **kwargs):
+    print(message)
+warnings.showwarning = _warning
 
 from ._exceptions import *
 from . import _atoms
