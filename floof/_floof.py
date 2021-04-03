@@ -7,6 +7,7 @@ import re
 import sys
 sys.setrecursionlimit(100000)
 
+from ._exceptions import *
 from . import _atoms
 for a in dir(_atoms):
     if a[0] != '_': # An atom
@@ -174,12 +175,8 @@ class FloofBlock:
             else:
                 match = re.match("^"+VALID_NAME_REGEX, code[idx:])
                 if not match:
-                    raise Exception(
-                        "[ERROR] Line %d: Invalid name `%s...`!"%(
-                            line, 
-                            code[idx:min(len(code)-1, idx+10)]
-                        )
-                    )
+                    code_snippet = code[idx:min(len(code)-1, idx+10)]
+                    raise FloofSyntaxError(line, "Invalid name `%s...`!"%code_snippet)
                 obj_str = match.group()
                 tokens.append(
                     Token(
@@ -216,11 +213,7 @@ class FloofBlock:
 
         start_bracket = tokens[start_idx].obj_str
         if start_bracket not in '[(':
-            raise Exception(
-                "[PARSE ERROR] `get_bracket_pair` called with `%c` when looking for one of either `(` or `[`!"%(
-                    start_bracket
-                )
-            )
+            raise FloofParseError("`get_bracket_pair` called with `%c` when looking for one of either `(` or `[`!"%start_bracket)
 
         if len(tokens[start_idx:]) <= 1:
             return None
@@ -275,19 +268,12 @@ class FloofBlock:
             t = tokens[start_call_idx]
             if t.obj_str != '(':
                 line = t.line
-                raise Exception(
-                    "[ERROR] Line %d: Unexpected token! Expected `(`, `%s` instead"%(
-                        line,
-                        t.obj_str
-                    )
-                )
+                raise FloofSyntaxError(line, "Unexpected token! Expected `(`, `%s` instead"%t.obj_str)
             
             end_call_idx = FloofBlock._get_bracket_pair(tokens, start_call_idx)
             if not end_call_idx:
                 line = tokens[0].line
-                raise Exception(
-                    "[ERROR] Line %d: Unbalanced bracket `%c`!"%(line, t.obj_str)
-                )
+                raise FloofSyntaxError(line, "Unbalanced bracket `%c`!"&t.obj_str)
 
             call_tokens = tokens[start_call_idx+1:end_call_idx]
             arg = FloofBlock._tokens_to_ast( 
@@ -332,21 +318,14 @@ class FloofBlock:
             end_decl_idx = FloofBlock._get_bracket_pair(tokens, 0)
             if not end_decl_idx:
                 line = tokens[0].line
-                raise Exception(
-                    "[ERROR] Line %d: Unbalanced bracket `%c`!"%(line, t.obj_str)
-                )
+                raise FloofSyntaxError(line, "Unbalanced bracket `%c`!"%t.obj_str)
 
             argname = tokens[1]
             def_tokens = tokens[3:end_decl_idx]
 
             if tokens[2].obj_str != ':':
                 line = tokens[2].line
-                raise Exception(
-                    "[ERROR] Line %d: Invalid declaration! Expected `:` token! `%s` instead"%(
-                        line,
-                        tokens[2].obj_str
-                    )
-                )
+                raise FloofSyntaxError(line, "Invalid declaration! Expected `:` token! `%s` instead"%tokens[2].obj_str)
 
             def_ast = FloofBlock._tokens_to_ast( 
                 def_tokens, 
@@ -373,12 +352,7 @@ class FloofBlock:
             objname = t
 
             if objname.obj_str not in [t.obj_str for t in namespace]:
-                raise Exception(
-                    "[ERROR] Line %d: Name `%s` is not defined!"%(
-                        t.line,
-                        t.obj_str
-                    )
-                )
+                raise FloofSyntaxError(t.line, "Name `%s` is not defined!"%t.obj_str)
 
             start_call_idx = 1
             argvals = FloofBlock._parse_argvals(
@@ -395,12 +369,7 @@ class FloofBlock:
             )
 
         else:
-            raise Exception(
-                "[ERROR] Line %d: Unexpected token! Expected `[` or an object name but got `%s` instead"%(
-                    t.line,
-                    t.obj_str
-                )
-            )
+            raise FloofSyntaxError(t.line, "Unexpected token! Expected `[` or an object name. Got `%s` instead"%t.obj_str)
 
     @staticmethod
     def _to_code(ast:AstObject, target:Literal['floof', 'python'] = 'python') -> str:
@@ -446,9 +415,7 @@ class FloofBlock:
             code = ""
 
         else:
-            raise Exception(
-                "[COMPILE ERROR] Unexpected object type"
-            )
+            raise FloofCompileError("Unexpected object type")
 
         return code
 
@@ -554,17 +521,17 @@ class Floof:
             if l[0]=='~':
                 break
             if l[0]=='!':
-                raise Exception("[ERROR] Line %d: Main definition within macro not allowed"%(idx+1))
+                raise FloofSyntaxError(idx+1, "Main definition within macro not allowed")
             macro_def += l+"\n"
 
         if not macro_name:
-            raise Exception("[ERROR] Line %d: No name given to macro"%(idx+1))
+            raise FloofSyntaxError(idx+1, "No name given to macro")
 
         if not re.match("^%s$"%VALID_NAME_REGEX, macro_name):
-            raise Exception("[ERROR] Line %d: Macro name `%s` invalid"%(idx+1, macro_name))
+            raise FloofSyntaxError(idx+1, "Macro name `%s` invalid"%macro_name)
 
         if not l or l[0] != '~':
-            raise Exception("[ERROR] Line %d: Macro `%s` terminator not found"%(idx+1, macro_name))
+            raise FloofSyntaxError(idx+1, "Macro `%s` terminator not found"%macro_name)
 
         macro_name = Token(macro_name, line_idx+1, -1, True)
         macro_block = FloofBlock(macro_def, line_idx+2, namespace)
@@ -603,11 +570,11 @@ class Floof:
             if l[0]=='~':
                 break
             if l[0]=='#':
-                raise Exception("[ERROR] Line %d: Macro definition within main not allowed"%(idx+1))
+                raise FloofSyntaxError(idx+1, "Macro definition within main not allowed")
             main += l+"\n"
 
         if not l or l[0] != '~':
-            raise Exception("[ERROR] Line %d: Main terminator not found"%(idx+1))
+            raise FloofSyntaxError(idx+1, "Main terminator not found")
 
         return FloofBlock(main, line_idx+2, namespace), j+idx+2
 
@@ -656,7 +623,7 @@ class Floof:
             return False
         
         else:
-            raise Exception("[COMPILER ERROR] Unexpected ObjType")
+            raise FloofCompileError("Unexpected ObjType")
 
     @staticmethod
     def _to_FloofBlock(code:str) -> FloofBlock:
@@ -695,8 +662,8 @@ class Floof:
             if line[0] == '#':
 
                 name, macro, end_idx = Floof._parse_macro(lines, idx, namespace)
-                if name in [n for n,_ in macros]:
-                    raise Exception("[ERROR] Line %d: Macro `%s` has been defined more than once."%(idx, name))
+                if name.obj_str in [n.obj_str for n,_ in macros]:
+                    raise FloofSyntaxError(idx+1, "Macro `%s` has been defined more than once."%name.obj_str)
                 
                 macros.append((name, macro))
                 namespace.append(name)
@@ -713,7 +680,7 @@ class Floof:
 
         # Check if main was never found
         if not main:
-            raise Exception("[ERROR] Line ??: No main found")
+            raise FloofSyntaxError(-1, "No main found")
 
         # Create AST for full program
         main_ast = main.get_ast()

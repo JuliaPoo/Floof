@@ -1,4 +1,5 @@
 from ._floof import Floof
+from ._exceptions import *
 import argparse
 
 def main():
@@ -11,15 +12,18 @@ def main():
     verbose = args.verbose
     code = open(filename).read()
 
-    floof = Floof(code)
-    if verbose:
-        print("FLOOF MIN:")
-        print(floof.to_code(target='floof'))
-        print()
-        print("PYTHON:")
-        print(floof.to_code(target='python'))
-        print()
+    try:
+        floof = Floof(code)
+        if verbose:
+            print("FLOOF MIN:")
+            print(floof.to_code(target='floof'))
+            print()
+            print("PYTHON:")
+            print(floof.to_code(target='python'))
+            print()
 
-    floof.run()
+        floof.run()
+    except (FloofParseError, FloofCompileError, FloofSyntaxError) as e:
+        print(e)
 
 main()
