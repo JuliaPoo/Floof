@@ -13,9 +13,6 @@ warnings.showwarning = _warning
 
 from ._exceptions import *
 from . import _atoms
-for a in dir(_atoms):
-    if a[0] != '_': # An atom
-        globals()["_%s_"%a] = getattr(_atoms, a)
 
 VALID_NAME_REGEX = r"[a-zA-Z_][a-zA-Z0-9_]*"
 
@@ -740,4 +737,9 @@ class Floof:
 
         """Runs floof program"""
 
-        eval(self.to_code())
+        globals_sandbox = {}
+        for a in dir(_atoms):
+            if a[0] != '_': # An atom
+                globals_sandbox["_%s_"%a] = getattr(_atoms, a)
+
+        eval(self.to_code(), globals_sandbox, {})
