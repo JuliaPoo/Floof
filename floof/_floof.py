@@ -539,6 +539,9 @@ class Floof:
 
         macro_name = Token(macro_name, line_idx+1, -1, True)
         macro_block = FloofBlock(macro_def, line_idx+2, namespace)
+        if macro_block.get_ast().obj_type == ObjType.NONE:
+            raise FloofSyntaxError(idx+1, "Macro `%s` is empty"%macro_name.obj_str)
+
         end_line_idx = j+idx+2
 
         return macro_name, macro_block, end_line_idx
@@ -580,7 +583,11 @@ class Floof:
         if not l or l[0] != '~':
             raise FloofSyntaxError(idx+1, "Main terminator not found")
 
-        return FloofBlock(main, line_idx+2, namespace), j+idx+2
+        main_block = FloofBlock(main, line_idx+2, namespace)
+        if main_block.get_ast().obj_type == ObjType.NONE:
+            raise FloofSyntaxError(idx+1, "Main is empty")
+
+        return main_block, j+idx+2
 
     @staticmethod
     def _search_macro(ast:AstObject, macro_name:str) -> bool:
