@@ -4,7 +4,7 @@ from enum import Enum, unique
 import re
 
 import sys
-sys.setrecursionlimit(100000)
+sys.setrecursionlimit(2000)
 
 import warnings
 def _warning(message, *args, **kwargs):
@@ -742,4 +742,7 @@ class Floof:
             if a[0] != '_': # An atom
                 globals_sandbox["_%s_"%a] = getattr(_atoms, a)
 
-        eval(self.to_code(), globals_sandbox, {})
+        try:
+            eval(self.to_code(), globals_sandbox, {})
+        except Exception as e:
+            raise FloofRuntimeError(e.args[0]) from e

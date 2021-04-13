@@ -23,7 +23,7 @@ def main():
             print()
 
         floof.run()
-    except (FloofParseError, FloofCompileError, FloofSyntaxError) as e:
+    except (FloofParseError, FloofCompileError, FloofSyntaxError, FloofRuntimeError) as e:
         print(e)
 
 main()

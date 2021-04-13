@@ -29,3 +29,10 @@ class FloofParseError(Exception):
 
     def __init__(self, msg:str):
         super().__init__("Parse error! %s"%msg)
+
+class FloofRuntimeError(Exception):
+
+    """Exception raised for errors during runtime"""
+
+    def __init__(self, msg:str):
+        super().__init__("Floof Runtime error! %s"%msg)
