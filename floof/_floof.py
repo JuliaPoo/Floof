@@ -160,7 +160,7 @@ class FloofBlock:
             c = code[idx]
 
             # Ignore whitespaces
-            if re.match('^\s$', c):
+            if re.match(r'^\s$', c):
                 if c=='\n': line+=1
 
             elif c in '[]():':
@@ -683,7 +683,7 @@ class Floof:
 
         if len(lines) >= end_idx:
             leftovers = "\n".join(lines[end_idx:])
-            if not re.match("^\s*$", leftovers):
+            if not re.match(r"^\s*$", leftovers):
                 warnings.warn("[WARNING] Code after line %d is ignored!"%end_idx)
 
         # Check if main was never found

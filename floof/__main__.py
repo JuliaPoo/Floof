@@ -21,8 +21,8 @@ def main():
             print("PYTHON:")
             print(floof.to_code(target='python'))
             print()
-
         floof.run()
+        
     except (FloofParseError, FloofCompileError, FloofSyntaxError, FloofRuntimeError) as e:
         print(e)
 
