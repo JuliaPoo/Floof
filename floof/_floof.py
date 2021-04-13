@@ -274,7 +274,7 @@ class FloofBlock:
             end_call_idx = FloofBlock._get_bracket_pair(tokens, start_call_idx)
             if not end_call_idx:
                 line = tokens[0].line
-                raise FloofSyntaxError(line, "Unbalanced bracket `%c`!"&t.obj_str)
+                raise FloofSyntaxError(line, "Unbalanced bracket `%c`!"%t.obj_str)
 
             call_tokens = tokens[start_call_idx+1:end_call_idx]
             arg = FloofBlock._tokens_to_ast( 
