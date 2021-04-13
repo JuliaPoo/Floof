@@ -1,5 +1,3 @@
-import sys as _sys
-
 _N0 = lambda f: lambda x: x
 _N1 = lambda f: lambda x: f(x)
 _N2 = lambda f: lambda x: f(f(x))
@@ -19,8 +17,13 @@ def IN_INT():
     n = int(input())
     return _in_int(n)
 
+_buffer = ""
 def IN_CHAR():
-    n = ord(_sys.stdin.read(1))
+    global _buffer
+    if not _buffer:
+        _buffer = input()+"\n"
+    n = ord(_buffer[0])
+    _buffer = _buffer[1:]
     return _in_int(n)   
 
 def OUT_INT(arg):
