@@ -14,46 +14,72 @@ warnings.showwarning = _warning
 from ._exceptions import *
 from . import _atoms
 
-VALID_NAME_REGEX = r"[a-zA-Z_][a-zA-Z0-9_]*"
+@unique
+class NodeType(Enum):
+    DECL = 0 # Expression
+    CALL = 1 # Calls a function
+    NONE = 2 # Empty node
 
 @dataclass
 class Token:
+
     obj_str: str
     line: int
-    obj_idx: int
     is_name: bool
 
-@unique
-class ObjType(Enum):
-    EXPR = 0
-    DECL = 1
-    NONE = 2
+    def __str__(self):
+        return self.obj_str
 
 @dataclass
-class ExprObject:
-    objname: Token
-    argvals: List['AstObject']
+class Node:
+    type: NodeType
+    childs: Tuple['Node', Token]
 
-@dataclass
-class DeclObject:
-    argname: Token
-    definition: 'AstObject'
-    argvals: List['AstObject']
+    @staticmethod
+    def _to_str(node: 'Node', template, minimise:bool=False) -> str:
 
-@dataclass
-class AstObject:
-    namespace: List[Token]
-    obj_type: Literal[ObjType.EXPR, ObjType.DECL, ObjType.NONE]
-    obj: Union[
-            ExprObject,
-            DeclObject
-        ]
+        if type(node) is Token:
+            return str(node)
+
+        ntype = node.type
+        if ntype == NodeType.DECL:
+            argname, defi = node.childs
+            return template%(argname, Node._to_str(defi, template, minimise))
+
+        elif ntype == NodeType.CALL:
+            A,B = node.childs
+            A = Node._to_str(A, template, minimise)
+            if minimise:
+                return str(A) + (str(B) if type(B) is Token else "(%s)"%Node._to_str(B, template, minimise))
+            return str(A) + "(%s)"%Node._to_str(B, template, minimise)
+
+        elif ntype == NodeType.NONE:
+            return ""
+
+        else:
+            raise FloofParseError("Unknown NodeType!")
+
+    def to_str(self, minimise:bool=False, target:Literal['python', 'floof'] = 'floof'):
+
+        template = {
+            "floof": "[%s:%s]",
+            "python": "(lambda %s: %s)"
+        }[target]
+        if target == 'python':
+            minimise = False
+
+        return self._to_str(self, template, minimise)
+
+    def __str__(self):
+        return self.to_str(self)
+
+VALID_NAME_REGEX = r"[a-zA-Z_][a-zA-Z0-9_]*"
 
 ATOMS = [
-    Token('_OUT_CHAR_', -1, -1, True),
-    Token('_IN_CHAR_', -1, -1, True),
-    Token('_OUT_INT_', -1, -1, True),
-    Token('_IN_INT_', -1, -1, True)
+    Token('_OUT_CHAR_', -1, True),
+    Token('_IN_CHAR_', -1, True),
+    Token('_OUT_INT_', -1, True),
+    Token('_IN_INT_', -1, True)
 ]
 
 class FloofBlock:
@@ -74,20 +100,18 @@ class FloofBlock:
 
     _tokens : List[Token]
         Tokens in `code`, initialised during `__init__`
-    _ast : AstObject
+    _ast : Node
         AST of `code`, initialised during `__init__`
-    _compiled : Dict
-        Cached compiled code, populated on `to_code` call.
 
     Methods
     -------
-    from_ast(self, ast: AstObject) -> `FloofBlock`
+    from_ast(self, ast: Node) -> `FloofBlock`
         Initialises FloofBlock directly from AST
 
     to_code(self, target:Literal['floof', 'python'] = 'python') -> str
         Compiles FloofBlock into `target` ("floof" or "python")
 
-    get_ast(self) -> AstObject
+    get_ast(self) -> Node
         Returns self._ast
     """
 
@@ -102,11 +126,7 @@ class FloofBlock:
             Line number where the block was from
         namespace : List[Token]
             Contains all tokens that block can reference
-        _from_ast : optional (Default False)
-            For internal use. Initialises FloofBlock from AstObject. Use `FloofBlock.from_ast` instead
         """
-
-        self._compiled = {}
 
         if _from_ast:
             self._ast = _from_ast
@@ -120,22 +140,21 @@ class FloofBlock:
         self._ast = self._tokens_to_ast(self._tokens, self.namespace)
 
     @classmethod
-    def from_ast(cls, ast:AstObject) -> 'FloofBlock':
+    def from_ast(cls, ast:Node) -> 'FloofBlock':
 
-        """Initialises FloofBlock directly from AstObject
+        """Initialises FloofBlock directly from Node
 
         Parameters
         ----------
-        ast : AstObject
-            AstObject used to initialise FloofBlock
+        ast : Node
+            Node used to initialise FloofBlock
 
         Returns
         -------
         FloofBlock
             Initialised FloofBlock object
         """
-
-        return cls(None, None, None, _from_ast = ast)
+        return cls("", 0, [], _from_ast=ast)
 
     def _tokenize(self) -> List[Token]:
 
@@ -161,17 +180,15 @@ class FloofBlock:
 
             # Ignore whitespaces
             if re.match(r'^\s$', c):
-                if c=='\n': line+=1
+                if c == '\n': line += 1
 
             elif c in '[]():':
                 tokens.append(
                     Token(
                         obj_str = c,
                         line = line,
-                        obj_idx = idx,
                         is_name = False
-                    )
-                )
+                    ))
 
             else:
                 match = re.match("^"+VALID_NAME_REGEX, code[idx:])
@@ -183,10 +200,8 @@ class FloofBlock:
                     Token(
                         obj_str = obj_str,
                         line = line,
-                        obj_idx = idx,
                         is_name = True
-                    )
-                )
+                    ))
                 idx += len(obj_str)
                 continue
 
@@ -212,7 +227,7 @@ class FloofBlock:
             Index into `tokens` that contains the closing braket
         """
 
-        start_bracket = tokens[start_idx].obj_str
+        start_bracket = str(tokens[start_idx])
         if start_bracket not in '[(':
             raise FloofParseError("`get_bracket_pair` called with `%c` when looking for one of either `(` or `[`!"%start_bracket)
 
@@ -228,197 +243,100 @@ class FloofBlock:
         depth = 0
         for c in tokens[start_idx+1:]:
             offset += 1
-            if c.obj_str==start_bracket:
+            if str(c)==start_bracket:
                 depth += 1
-            if c.obj_str==end_bracket:
+            if str(c)==end_bracket:
                 if depth == 0:
                     return offset+start_idx
                 depth -= 1
-        return None
+
+        t = tokens[start_idx]
+        raise FloofSyntaxError(t.line, "Unbalanced bracket `%s`."%t)
+        #return None
 
     @staticmethod
-    def _parse_argvals(namespace:List[Token], tokens:List[Token], start_call_idx:int) -> List[AstObject]:
+    def _tokens_to_ast(tokens:List[Token], namespace:List[Token]) -> Node:
 
-        """Parse floof syntax for calls (arg1)(arg2)...
-
-        Parameters
-        ----------
-        namespace : List[Token]
-            namespace as which the calls are in
-        tokens : List[Token]
-            tokens to parse the calls
-        start_call_idx : int
-            index into `tokens` that indicates start of call
-            Either `start_call_idx` indexes beyond `tokens` or the token
-            it indexes is `(`
-
-        Returns
-        -------
-        List[AstObject]
-            List of arguments [arg1, arg2, arg3...]
-        """
-
-        argvals = []
-
-        while True:
-
-            # End of tokens
-            if len(tokens) == start_call_idx:
-                break
-            
-            t = tokens[start_call_idx]
-            if t.obj_str != '(':
-                line = t.line
-                raise FloofSyntaxError(line, "Unexpected token! Expected `(`, `%s` instead"%t.obj_str)
-            
-            end_call_idx = FloofBlock._get_bracket_pair(tokens, start_call_idx)
-            if not end_call_idx:
-                line = tokens[0].line
-                raise FloofSyntaxError(line, "Unbalanced bracket `%c`!"%t.obj_str)
-
-            call_tokens = tokens[start_call_idx+1:end_call_idx]
-            arg = FloofBlock._tokens_to_ast( 
-                call_tokens,
-                namespace
-            )
-            argvals.append(arg)
-            start_call_idx = end_call_idx+1
-
-        return argvals
-
-    @staticmethod
-    def _tokens_to_ast(tokens:List[Token], namespace:List[Token]) -> AstObject: 
-
-        """Converts tokens to AstObject
+        """Converts tokens to Node
         
         Parameters
         ----------
         tokens : List[Token]
-            Tokens to parse to AstObject
+            Tokens to parse to ast
         namespace : List[Token]
             Namespace at which the tokens are in
 
         Returns
         -------
-        AstObject
-            AstObject of `tokens`
+        Node
+            Ast of `tokens`
         """
 
         if len(tokens) == 0:
-            return AstObject(
-                namespace = namespace,
-                obj_type = ObjType.NONE,
-                obj = None
-            )
+            return Node(NodeType.NONE, [])
 
-        t = tokens[0]
+        t0 = tokens[0]
+        ns_str = [str(i) for i in namespace]
 
-        # Start of declaration object (DeclObject)
-        if t.obj_str == '[':
+        if t0.is_name:
 
-            end_decl_idx = FloofBlock._get_bracket_pair(tokens, 0)
-            if not end_decl_idx:
-                line = tokens[0].line
-                raise FloofSyntaxError(line, "Unbalanced bracket `%c`!"%t.obj_str)
+            if str(t0) not in ns_str:
+                raise FloofSyntaxError(t0.line, "Name `%s` is not defined!"%t0)
 
-            argname = tokens[1]
-            def_tokens = tokens[3:end_decl_idx]
+            if len(tokens) == 1:
+                return t0
 
-            if tokens[2].obj_str != ':':
-                line = tokens[2].line
-                raise FloofSyntaxError(line, "Invalid declaration! Expected `:` token! `%s` instead"%tokens[2].obj_str)
+            t1 = tokens[1]
+            if str(t1) != "(":
+                raise FloofSyntaxError(t1.line, "Unexpected token `%s`. Expected `(`."%t1)
 
-            def_ast = FloofBlock._tokens_to_ast( 
-                def_tokens, 
-                namespace + [argname]
-            )
+            end_idx = FloofBlock._get_bracket_pair(tokens, 1)
+            n_tokens = tokens[2:end_idx]
 
-            start_call_idx = end_decl_idx+1
-            argvals = FloofBlock._parse_argvals(
-                namespace, tokens, start_call_idx,
-            )
+            node = Node(NodeType.CALL, [
+                t0, FloofBlock._tokens_to_ast(n_tokens, namespace)
+            ])
 
-            return AstObject(
-                namespace = namespace,
-                obj_type = ObjType.DECL,
-                obj = DeclObject(
-                    argname = argname,
-                    definition = def_ast,
-                    argvals = argvals
-                )
-            )
+        elif str(t0) == '(':
 
-        elif t.is_name:
+            end_idx = FloofBlock._get_bracket_pair(tokens, 0)
+            n_tokens = tokens[1:end_idx]
+
+            node = FloofBlock._tokens_to_ast(n_tokens, namespace)
+
+        elif str(t0) == '[':
+
+            if len(tokens) < 5:
+                raise FloofSyntaxError(t0.line, "Incomplete function declaration!")
+
+            t1 = tokens[1]
+            if not t1.is_name:
+                raise FloofSyntaxError(t1.line, "Unexpected token `%s`. Expected a name"%t1)
             
-            objname = t
+            t2 = tokens[2]
+            if str(t2) != ':':
+                raise FloofSyntaxError(t2.line, "Unexpected token `%s`. Expected `:` instead"%t2)
 
-            if objname.obj_str not in [t.obj_str for t in namespace]:
-                raise FloofSyntaxError(t.line, "Name `%s` is not defined!"%t.obj_str)
+            end_idx = FloofBlock._get_bracket_pair(tokens, 0)
+            n_tokens = tokens[3:end_idx]
+            n_namespace = namespace[:] + [t1]
 
-            start_call_idx = 1
-            argvals = FloofBlock._parse_argvals(
-                namespace, tokens, start_call_idx
-            )
-
-            return AstObject(
-                namespace = namespace,
-                obj_type = ObjType.EXPR,
-                obj = ExprObject(
-                    objname = objname,
-                    argvals = argvals
-                )
-            )
+            node = Node(NodeType.DECL, [
+                t1, FloofBlock._tokens_to_ast(n_tokens, n_namespace)
+            ])
 
         else:
-            raise FloofSyntaxError(t.line, "Unexpected token! Expected `[` or an object name. Got `%s` instead"%t.obj_str)
+            raise FloofSyntaxError(t0.line, "Unexpected token `%s`. Expected `(`, `[` or a name"%t0)
 
-    @staticmethod
-    def _to_code(ast:AstObject, target:Literal['floof', 'python'] = 'python') -> str:
+        while end_idx != len(tokens)-1:
+            tmp = end_idx
+            end_idx = FloofBlock._get_bracket_pair(tokens, tmp+1)
+            n_tokens = tokens[tmp+2: end_idx]
+            node = Node(NodeType.CALL, [
+                node, FloofBlock._tokens_to_ast(n_tokens, namespace)
+            ])
 
-        """Converts AstObject to code
-
-        Parameters
-        ----------
-        ast : AstObject
-            AstObject to convert to code to
-        target : Literal['floof', 'python'], optional (default 'python')
-            Target to compile to
-
-        Returns
-        -------
-        str
-            String representing code of `target`
-        """
-
-        template = {
-            "floof": "[%s:%s]",
-            "python": "(lambda %s: %s)"
-        }[target]
-
-        if ast.obj_type==ObjType.DECL:
-            obj = ast.obj
-            argname, definition, argvals = obj.argname, obj.definition, obj.argvals
-            code = template%(
-                argname.obj_str,
-                FloofBlock._to_code(definition, target)
-            )
-            for arg in argvals:
-                code += "(%s)"%FloofBlock._to_code(arg, target)
-            
-        elif ast.obj_type==ObjType.EXPR:
-            obj = ast.obj
-            objname, argvals = obj.objname, obj.argvals
-            code = "%s"%objname.obj_str
-            for arg in argvals:
-                code += "(%s)"%FloofBlock._to_code(arg, target)
-
-        elif ast.obj_type==ObjType.NONE:
-            code = ""
-
-        else:
-            raise FloofCompileError("Unexpected object type")
-
-        return code
+        return node
 
     def to_code(self, target:Literal['floof', 'python'] = 'python') -> str:
 
@@ -435,21 +353,20 @@ class FloofBlock:
             String representing code of `target`
         """
 
-        if target not in self._compiled:
-            self._compiled[target] = self._to_code(self._ast, target)
-        return self._compiled[target]
+        return self._ast.to_str(target=target)
 
-    def get_ast(self) -> AstObject:
+    def get_ast(self) -> Node:
 
         """Gets self._ast
 
         Returns
         -------
-        AstObject
+        Node
             self._ast
         """
 
         return self._ast
+
 
 class Floof:
 
@@ -464,8 +381,6 @@ class Floof:
         Floof program code
     _mainblock : FloofBlock
         FloofBlock that represents the whole program. Initialised during __init__
-    _compiled : Dict
-        Cached compiled code, populated on `to_code` call.
         
 
     Methods
@@ -487,7 +402,6 @@ class Floof:
 
         self.code = code
         self._mainblock = self._to_FloofBlock(code)
-        self._compiled = {}
 
     @staticmethod
     def _parse_macro(lines:List[str], line_idx:int, namespace:List[Token]) -> Tuple[Token, FloofBlock, int]:
@@ -534,10 +448,12 @@ class Floof:
         if not l or l[0] != '~':
             raise FloofSyntaxError(idx+1, "Macro `%s` terminator not found"%macro_name)
 
-        macro_name = Token(macro_name, line_idx+1, -1, True)
+        macro_name = Token(macro_name, line_idx+1, True)
         macro_block = FloofBlock(macro_def, line_idx+2, namespace)
-        if macro_block.get_ast().obj_type == ObjType.NONE:
-            raise FloofSyntaxError(idx+1, "Macro `%s` is empty"%macro_name.obj_str)
+        ast = macro_block.get_ast()
+        
+        if type(ast) != Token and ast.type == NodeType.NONE:
+            raise FloofSyntaxError(idx+1, "Macro `%s` is empty"%macro_name)
 
         end_line_idx = j+idx+2
 
@@ -581,19 +497,21 @@ class Floof:
             raise FloofSyntaxError(idx+1, "Main terminator not found")
 
         main_block = FloofBlock(main, line_idx+2, namespace)
-        if main_block.get_ast().obj_type == ObjType.NONE:
+        ast = main_block.get_ast()
+        
+        if type(ast) != Token and ast.type == NodeType.NONE:
             raise FloofSyntaxError(idx+1, "Main is empty")
 
         return main_block, j+idx+2
 
     @staticmethod
-    def _search_macro(ast:AstObject, macro_name:str) -> bool:
+    def _search_macro(ast:Union[Node, Token], macro_name:str, namespace:List[Token]) -> bool:
         
         """Searches for macro in ast
 
         Parameters
         ----------
-        ast : AstObject
+        ast : Union[Node, Token]
             Ast to search macro in
         macro_name : str
             Name of macro to search for
@@ -603,35 +521,32 @@ class Floof:
         bool
             True if macro is found in ast. False o.w.
         """
-
-        namespace_str = [t.obj_str for t in ast.namespace]
-        if ast.obj_type == ObjType.EXPR:
-            if macro_name not in namespace_str:
-                return False
-            if ast.obj.objname.obj_str == macro_name:
-                return True
-            for arg in ast.obj.argvals:
-                if Floof._search_macro(arg, macro_name):
-                    return True
-            return False
-
-        elif ast.obj_type == ObjType.DECL:
-            if macro_name not in namespace_str:
-                return False
-            if ast.obj.argname.obj_str == macro_name:
-                return True
-            for arg in ast.obj.argvals:
-                if Floof._search_macro(arg, macro_name):
-                    return True
-            if Floof._search_macro(ast.obj.definition, macro_name):
-                return True
-            return False
-
-        elif ast.obj_type == ObjType.NONE:
-            return False
         
+        if type(ast) == Token:
+            return str(ast) == macro_name
+
+        if ast.type == NodeType.NONE:
+            return False
+
+        namespace_str = [str(t) for t in namespace]
+        if macro_name not in namespace_str:
+            return False
+
+        a,b = ast.childs
+        
+        if ast.type==NodeType.DECL:
+            if str(a) == macro_name:
+                return False
+            return Floof._search_macro(b, macro_name, namespace[:] + [a])
+
+        elif ast.type==NodeType.CALL:
+            ret  = Floof._search_macro(a, macro_name, namespace)
+            ret |= Floof._search_macro(b, macro_name, namespace)
+            return ret
+
         else:
-            raise FloofCompileError("Unexpected ObjType")
+            raise FloofParseError("Unexpected NodeType!")
+
 
     @staticmethod
     def _to_FloofBlock(code:str) -> FloofBlock:
@@ -670,8 +585,8 @@ class Floof:
             if line[0] == '#':
 
                 name, macro, end_idx = Floof._parse_macro(lines, idx, namespace)
-                if name.obj_str in [n.obj_str for n,_ in macros]:
-                    raise FloofSyntaxError(idx+1, "Macro `%s` has been defined more than once."%name.obj_str)
+                if str(name) in [str(n) for n,_ in macros]:
+                    raise FloofSyntaxError(idx+1, "Macro `%s` has been defined more than once."%name)
                 
                 macros.append((name, macro))
                 namespace.append(name)
@@ -692,25 +607,21 @@ class Floof:
 
         # Create AST for full program
         main_ast = main.get_ast()
-        main_namespace = main_ast.namespace
+        main_namespace = namespace
 
         for name, macro in macros[::-1]:
 
-            main_namespace = [t for t in main_namespace if t.obj_str != name.obj_str]
-
-            if not Floof._search_macro(main_ast, name.obj_str):
-                warnings.warn("[WARNING] Line %d: Macro `%s` is not used"%(name.line, name.obj_str))
+            if not Floof._search_macro(main_ast, str(name), main_namespace):
+                warnings.warn("[WARNING] Line %d: Macro `%s` is not used"%(name.line, str(name)))
                 continue
 
-            main_ast = AstObject(
-                namespace = main_namespace,
-                obj_type = ObjType.DECL,
-                obj = DeclObject(
-                    argname = name,
-                    definition = main_ast,
-                    argvals = [macro.get_ast()]
-                )
-            )
+            main_namespace = [t for t in main_namespace if str(t) != str(name)]
+
+            main_ast = Node(
+                type = NodeType.CALL,
+                childs = (
+                    Node(type = NodeType.DECL, childs = (name, main_ast)), 
+                    macro.get_ast()))
 
         return FloofBlock.from_ast(main_ast)
 
@@ -728,10 +639,8 @@ class Floof:
         str
             String representing code of `target`
         """
-
-        if target not in self._compiled:
-            self._compiled[target] = self._mainblock.to_code(target)
-        return self._compiled[target]
+        code = self._mainblock.to_code(target)
+        return code
 
     def run(self) -> NoReturn:
 
