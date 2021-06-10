@@ -330,8 +330,9 @@ class FloofBlock:
 
         while end_idx != len(tokens)-1:
             tmp = end_idx
-            if tokens[tmp+1] != '(':
-                raise FloofSyntaxError(t0.line, "Unexpected token `%s`. Expected `(` instead"%t0)
+            t = tokens[tmp+1]
+            if str(t) != '(':
+                raise FloofSyntaxError(t.line, "Unexpected token `%s`. Expected `(` instead"%t)
             end_idx = FloofBlock._get_bracket_pair(tokens, tmp+1)
             n_tokens = tokens[tmp+2: end_idx]
             node = Node(NodeType.CALL, (
