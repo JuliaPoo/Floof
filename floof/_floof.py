@@ -59,7 +59,7 @@ class Node:
         else:
             raise FloofParseError("Unknown NodeType!")
 
-    def to_str(self, minimise:bool=False, target:Literal['python', 'floof'] = 'floof'):
+    def to_str(self, minimise:bool=False, target:Literal['python', 'floof'] = 'floof') -> str:
 
         template = {
             "floof": "[%s:%s]",
@@ -273,7 +273,7 @@ class FloofBlock:
         """
 
         if len(tokens) == 0:
-            return Node(NodeType.NONE, [])
+            return Node(NodeType.NONE, ())
 
         t0 = tokens[0]
         ns_str = [str(i) for i in namespace]
@@ -293,9 +293,9 @@ class FloofBlock:
             end_idx = FloofBlock._get_bracket_pair(tokens, 1)
             n_tokens = tokens[2:end_idx]
 
-            node = Node(NodeType.CALL, [
+            node = Node(NodeType.CALL, (
                 t0, FloofBlock._tokens_to_ast(n_tokens, namespace)
-            ])
+            ))
 
         elif str(t0) == '(':
 
@@ -321,9 +321,9 @@ class FloofBlock:
             n_tokens = tokens[3:end_idx]
             n_namespace = namespace[:] + [t1]
 
-            node = Node(NodeType.DECL, [
+            node = Node(NodeType.DECL, (
                 t1, FloofBlock._tokens_to_ast(n_tokens, n_namespace)
-            ])
+            ))
 
         else:
             raise FloofSyntaxError(t0.line, "Unexpected token `%s`. Expected `(`, `[` or a name"%t0)
@@ -332,9 +332,9 @@ class FloofBlock:
             tmp = end_idx
             end_idx = FloofBlock._get_bracket_pair(tokens, tmp+1)
             n_tokens = tokens[tmp+2: end_idx]
-            node = Node(NodeType.CALL, [
+            node = Node(NodeType.CALL, (
                 node, FloofBlock._tokens_to_ast(n_tokens, namespace)
-            ])
+            ))
 
         return node
 
